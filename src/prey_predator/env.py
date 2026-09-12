@@ -1,4 +1,6 @@
 import numpy as np
+
+
 class marl_environment():
         
     MOVES = np.array([[0,-1], [0,1],[-1,0],[1,0]])
@@ -21,23 +23,78 @@ class marl_environment():
         
     #reseting the enviroment by setting steps at 0, giving random positions to each entity (predators, preys, lairs). 
     def reset(self):
+
         self.predators = []
         self.preys = []
-        self.lair = []
+        self.lairs = []
+
         for _ in range(self.num_predators):
             self.predators.append(self.rng.integers(0, self.grid_size, size = 2))
         for _ in range(self.num_preys):
             self.preys.append(self.rng.integers(0, self.grid_size, size = 2))    
         for _ in range(self.num_lairs):
-            self.lair.append(self.rng.integers(0, self.grid_size, size = 2))
+            self.lairs.append(self.rng.integers(0, self.grid_size, size = 2))
 
         self.step_count = 0
 
-        #entities movement
+    
     def step(self, actions):
+
         self.step_count += 1
+        self.move_predators(actions)
+        self.move_preys()
 
-        #predators movement
+    #predator movement
+    def move_predators(self, actions):
 
+        
         for i, action in enumerate(actions):
-            self.predators[i] = np.clip( self.predators[i] + self.MOVES[action], 0,self.grid_size -1 ) #np.clip prevents movement of the grid
+            self.predators[i] = np.clip( self.predators[i] + self.MOVES[action], 0, self.grid_size -1) #np.clip prevents movement of the grid (value, minimum, maximum)
+
+    #prey movement
+    def move_preys(self):
+
+        for i in range(len(self.preys)):
+            prey = self.preys[i]
+
+            visible = []
+            visible_lair = []
+            for pred in self.predators:
+                if np.abs(prey - pred).sum() <= self.vision_range:
+                  visible.append(pred)
+
+            if not visible:
+                continue
+
+            for lair in self.lairs:
+                if np.abs(prey - lair).sum() <= self.vision_range:
+                    visible_lair.append(lair)
+                    
+            if visible_lair:
+                nearest = min(visible_lair, key=lambda l: np.abs(prey - l).sum())
+                direction = np.clip(nearest - prey, -1, 1)
+                self.preys[i] = np.clip(prey + direction, 0, self.grid_size - 1)
+                continue
+
+            distances = []
+
+            for pred in visible:
+                distances.append(np.abs(prey- pred).sum())
+
+            best_score = min(distances)
+            best_pos = prey
+
+            for move in self.MOVES:
+                option = np.clip(prey + move, 0, self.grid_size -1)
+
+                distance_option = []
+
+                for pred in visible:
+                    distance_option.append(np.abs(option - pred).sum())
+                score = min(distance_option)        
+
+                if score > best_score:
+                    best_score = score
+                    best_pos = option
+                    
+            self.preys[i] = best_pos    
