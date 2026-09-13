@@ -51,8 +51,9 @@ class marl_environment():
         self.move_preys()
         rewards = self.reward_system()
         self.check_status_prey()
+        observations = [self.observation(pred) for pred in self.predators] 
 
-        return rewards, self.terminated()
+        return observations, rewards, self.terminated()
 
     #predator movement
     def move_predators(self, actions):
