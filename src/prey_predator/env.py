@@ -133,7 +133,7 @@ class marl_environment():
     def terminated(self):  
         return len(self.preys)== 0 or self.step_count >= self.max_steps
 
-
+    #set a penalty per step, reward per catch and approximate to a prey
     def reward_system(self):
         rewards = [-0.005 for _ in range(self.num_predators)] 
 
@@ -148,3 +148,30 @@ class marl_environment():
                     rewards[i] += 0.05 * (self.vision_range - distance)/ self.vision_range
 
         return rewards
+
+    def observation(self, predator):
+        preys_in_range = []
+        lairs_in_range = []
+        
+        for prey in self.preys:
+            if self.can_see(prey, predator):
+                preys_in_range.append(prey)
+
+        if preys_in_range:
+            closest_prey = min(preys_in_range, key=lambda p: self.distance(predator, p))  
+            rel_prey = tuple(closest_prey - predator)
+
+        else:
+            rel_prey = None
+                    
+        for lair in self.lairs:
+            if self.can_see(lair, predator):
+                lairs_in_range.append(lair)
+
+        if lairs_in_range:
+            closest_lair = min(lairs_in_range, key=lambda p: self.distance(predator, p))
+            rel_lair = tuple(closest_lair - predator)
+        else:
+            rel_lair = None
+
+        return (rel_prey, rel_lair)    
