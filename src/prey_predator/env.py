@@ -20,7 +20,12 @@ class marl_environment():
         self.max_steps = max_steps
         self.rng = np.random.default_rng(seed)
 
-        
+    def distance(self, a, b):
+        return np.abs(a-b).sum()
+
+    def can_see(self, a, b):
+        return self.distance(a, b) <= self.vision_range
+                
     #reseting the enviroment by setting steps at 0, giving random positions to each entity (predators, preys, lairs). 
     def reset(self):
 
@@ -44,8 +49,10 @@ class marl_environment():
         self.step_count += 1
         self.move_predators(actions)
         self.move_preys()
+        rewards = self.reward_system()
         self.check_status_prey()
-        return self.terminated()
+
+        return rewards, self.terminated()
 
     #predator movement
     def move_predators(self, actions):
@@ -102,6 +109,7 @@ class marl_environment():
 
             self.preys[i] = best_pos    
 
+    #per step it checks if each of the preys are still on the grid, by compare their coords to the predators and lairs.
     def check_status_prey(self):
         alive = []
 
@@ -121,5 +129,22 @@ class marl_environment():
 
         self.preys = alive        
 
+    #terminating the episode if the parameters are met.
     def terminated(self):  
         return len(self.preys)== 0 or self.step_count >= self.max_steps
+
+
+    def reward_system(self):
+        rewards = [-0.005 for _ in range(self.num_predators)] 
+
+        for i, pred in enumerate(self.predators):
+
+            if any(np.array_equal(pred, prey) for prey in self.preys):
+                rewards[i] += 2
+
+            for prey in self.preys:
+                if self.can_see(pred, prey):
+                    distance = self.distance(prey, pred)
+                    rewards[i] += 0.05 * (self.vision_range - distance)/ self.vision_range
+
+        return rewards
