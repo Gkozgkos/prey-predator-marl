@@ -36,13 +36,15 @@ class marl_environment():
             self.lairs.append(self.rng.integers(0, self.grid_size, size = 2))
 
         self.step_count = 0
-
+        self.caught = 0
+        self.escaped = 0
     
     def step(self, actions):
 
         self.step_count += 1
         self.move_predators(actions)
         self.move_preys()
+        self.check_status_prey()
 
     #predator movement
     def move_predators(self, actions):
@@ -96,5 +98,24 @@ class marl_environment():
                 if score > best_score:
                     best_score = score
                     best_pos = option
-                    
+
             self.preys[i] = best_pos    
+
+    def check_status_prey(self):
+        alive = []
+
+        for prey in self.preys:
+
+            on_predator = any(np.array_equal(prey, pred)for pred in self.predators)
+            on_lair = any(np.array_equal(prey, lair)for lair in self.lairs)
+
+            if on_lair:
+                self.escaped += 1
+
+            elif on_predator:
+                self.caught += 1
+
+            else:
+                alive.append(prey)
+
+        self.preys = alive        
