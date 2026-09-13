@@ -45,6 +45,7 @@ class marl_environment():
         self.move_predators(actions)
         self.move_preys()
         self.check_status_prey()
+        return self.terminated()
 
     #predator movement
     def move_predators(self, actions):
@@ -119,3 +120,6 @@ class marl_environment():
                 alive.append(prey)
 
         self.preys = alive        
+
+    def terminated(self):  
+        return len(self.preys)== 0 or self.step_count >= self.max_steps
