@@ -7,10 +7,10 @@ env = marl_environment(seed = 42)
 
 agents = [QAgent(seed=i) for i  in range(env.num_predators)]
 
-episodes = 90000
+episodes = 2000
 epsilon = 1.0
 epsilon_min = 0.01
-epsilon_decay = 0.999943
+epsilon_decay = 0.995
 
 catches_per_episode = []
 rewards_per_episode = [[] for _ in range(env.num_predators)]

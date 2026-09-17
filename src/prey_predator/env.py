@@ -10,7 +10,7 @@ class marl_environment():
        [1,  0]   right   x up,   y same'''
 
     #initializing an environment
-    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 2, predator_vision_range = 5,prey_vision_range = 2, max_steps = 2000,  seed= None):
+    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 1, predator_vision_range = 5,prey_vision_range = 2, max_steps = 500,  seed= None, block_density = 0.15):
         
         self.grid_size = grid_size
         self.num_predators = num_predators
@@ -20,26 +20,53 @@ class marl_environment():
         self.prey_vision_range = prey_vision_range
         self.max_steps = max_steps
         self.rng = np.random.default_rng(seed)
+        self.block_density = block_density
 
     def can_see(self, a, b, vision_range):
         return self.distance(a, b) <= vision_range
 
     def distance(self, a, b):
         return np.abs(a-b).sum()
-                
+    
+    def is_blocked(self, pos):
+        return self.blocked[pos[0], pos[1]]
+
+    def free_positions(self):
+        while True:
+            pos = self.rng.integers(0, self.grid_size, size =2)
+            if not self.is_blocked(pos):
+                return pos
+            
     #reseting the enviroment by setting steps at 0, giving random positions to each entity (predators, preys, lairs). 
     def reset(self):
+
+        self.blocked = np.zeros((self.grid_size, self.grid_size), dtype=bool)
+        num_blocked = int(self.grid_size * self.grid_size * self.block_density)
 
         self.predators = []
         self.preys = []
         self.lairs = []
+        placed = 0
+
+        while placed < num_blocked:
+
+            x = self.rng.integers(0, self.grid_size)
+            y = self.rng.integers(0, self.grid_size)
+
+            if not self.blocked[x,y]:
+
+                self.blocked[x,y] = True
+                placed += 1
+
+
+
 
         for _ in range(self.num_predators):
-            self.predators.append(self.rng.integers(0, self.grid_size, size = 2))
+            self.predators.append(self.free_positions())
         for _ in range(self.num_preys):
-            self.preys.append(self.rng.integers(0, self.grid_size, size = 2))    
+            self.preys.append(self.free_positions())    
         for _ in range(self.num_lairs):
-            self.lairs.append(self.rng.integers(0, self.grid_size, size = 2))
+            self.lairs.append(self.free_positions())
 
         self.step_count = 0
         self.caught = 0
@@ -58,11 +85,11 @@ class marl_environment():
 
     #predator movement
     def move_predators(self, actions):
-
         
         for i, action in enumerate(actions):
-            self.predators[i] = np.clip( self.predators[i] + self.MOVES[action], 0, self.grid_size -1) #np.clip prevents movement off the grid (value, minimum, maximum)
-
+                temp_pos = np.clip(self.predators[i] + self.MOVES[action], 0, self.grid_size -1)
+                if not self.is_blocked(temp_pos):
+                    self.predators[i] = temp_pos
     #prey movement
     def move_preys(self):
 
@@ -85,7 +112,9 @@ class marl_environment():
             if visible_lair:
                 nearest = min(visible_lair, key=lambda l: np.abs(prey - l).sum())
                 direction = np.clip(nearest - prey, -1, 1)
-                self.preys[i] = np.clip(prey + direction, 0, self.grid_size - 1)
+                temp_pos = np.clip(prey + direction, 0, self.grid_size - 1)
+                if not self.is_blocked(temp_pos):
+                    self.preys[i] = temp_pos
                 continue
 
             distances = []
@@ -98,7 +127,9 @@ class marl_environment():
 
             for move in self.MOVES:
                 option = np.clip(prey + move, 0, self.grid_size -1)
-
+                if self.is_blocked(option):
+                    continue
+                
                 distance_option = []
 
                 for pred in visible:
