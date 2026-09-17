@@ -10,21 +10,22 @@ class marl_environment():
        [1,  0]   right   x up,   y same'''
 
     #initializing an environment
-    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 3, vision_range = 5, max_steps = 5000,  seed= None):
+    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 2, predator_vision_range = 5,prey_vision_range = 2, max_steps = 2000,  seed= None):
         
         self.grid_size = grid_size
         self.num_predators = num_predators
         self.num_preys = num_preys
         self.num_lairs = num_lairs
-        self.vision_range = vision_range
+        self.predator_vision_range = predator_vision_range
+        self.prey_vision_range = prey_vision_range
         self.max_steps = max_steps
         self.rng = np.random.default_rng(seed)
 
+    def can_see(self, a, b, vision_range):
+        return self.distance(a, b) <= vision_range
+
     def distance(self, a, b):
         return np.abs(a-b).sum()
-
-    def can_see(self, a, b):
-        return self.distance(a, b) <= self.vision_range
                 
     #reseting the enviroment by setting steps at 0, giving random positions to each entity (predators, preys, lairs). 
     def reset(self):
@@ -60,7 +61,7 @@ class marl_environment():
 
         
         for i, action in enumerate(actions):
-            self.predators[i] = np.clip( self.predators[i] + self.MOVES[action], 0, self.grid_size -1) #np.clip prevents movement of the grid (value, minimum, maximum)
+            self.predators[i] = np.clip( self.predators[i] + self.MOVES[action], 0, self.grid_size -1) #np.clip prevents movement off the grid (value, minimum, maximum)
 
     #prey movement
     def move_preys(self):
@@ -71,14 +72,14 @@ class marl_environment():
             visible = []
             visible_lair = []
             for pred in self.predators:
-                if np.abs(prey - pred).sum() <= self.vision_range:
+                if np.abs(prey - pred).sum() <= self.prey_vision_range:
                   visible.append(pred)
 
             if not visible:
                 continue
 
             for lair in self.lairs:
-                if np.abs(prey - lair).sum() <= self.vision_range:
+                if np.abs(prey - lair).sum() <= self.prey_vision_range:
                     visible_lair.append(lair)
                     
             if visible_lair:
@@ -144,9 +145,9 @@ class marl_environment():
                 rewards[i] += 2
 
             for prey in self.preys:
-                if self.can_see(pred, prey):
+                if self.can_see(pred, prey, self.predator_vision_range):
                     distance = self.distance(prey, pred)
-                    rewards[i] += 0.05 * (self.vision_range - distance)/ self.vision_range
+                    rewards[i] += 0.05 * (self.predator_vision_range - distance)/ self.predator_vision_range
 
         return rewards
 
@@ -155,7 +156,7 @@ class marl_environment():
         lairs_in_range = []
         
         for prey in self.preys:
-            if self.can_see(prey, predator):
+            if self.can_see(prey, predator, self.predator_vision_range):
                 preys_in_range.append(prey)
 
         if preys_in_range:
@@ -166,7 +167,7 @@ class marl_environment():
             rel_prey = None
                     
         for lair in self.lairs:
-            if self.can_see(lair, predator):
+            if self.can_see(lair, predator, self.predator_vision_range):
                 lairs_in_range.append(lair)
 
         if lairs_in_range:
