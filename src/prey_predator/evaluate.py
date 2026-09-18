@@ -21,7 +21,7 @@ def evaluate(agents, env, episodes = 500):
             for i in range(env.num_predators):
                 actions.append(agents[i].choose_action(states[i], 0.0))
 
-            next_states, rewards, done = env.step(actions)
+            rewards, done = env.step(actions)
 
             for i in range(env.num_predators):
                 episode_rewards[i] += rewards[i] 
