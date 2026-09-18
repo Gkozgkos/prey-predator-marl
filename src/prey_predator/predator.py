@@ -3,7 +3,7 @@ import pickle
 
 class QAgent():
 
-    def __init__(self, learning_rate = 0.3, discount = 0.9, num_actions = 4, seed = None):
+    def __init__(self, learning_rate = 0.3, discount = 0.99, num_actions = 4, seed = None):
         self.learning_rate = learning_rate
         self.discount = discount
         self.num_actions = num_actions

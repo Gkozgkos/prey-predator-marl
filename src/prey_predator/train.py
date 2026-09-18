@@ -5,12 +5,12 @@ import pickle
 
 env = marl_environment(seed = 42)
 
-agents = [QAgent(seed=i) for i  in range(env.num_predators)]
+agents = [QAgent(seed=i, num_actions=8) for i  in range(env.num_predators)]
 
-episodes = 2000
+episodes = 90000
 epsilon = 1.0
 epsilon_min = 0.01
-epsilon_decay = 0.995
+epsilon_decay = 0.999943
 
 catches_per_episode = []
 rewards_per_episode = [[] for _ in range(env.num_predators)]

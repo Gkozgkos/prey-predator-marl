@@ -3,14 +3,14 @@ import numpy as np
 
 class marl_environment():
         
-    MOVES = np.array([[0,-1], [0,1],[-1,0],[1,0]])
+    MOVES = np.array([[0,-1], [0,1], [-1,0], [1,0],[-1,-1], [-1,1], [1,-1], [1,1]])
     '''[0, -1]   up      x same, y down
        [0,  1]   down    x same, y up
        [-1, 0]   left    x down, y same
        [1,  0]   right   x up,   y same'''
 
     #initializing an environment
-    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 1, predator_vision_range = 5,prey_vision_range = 2, max_steps = 500,  seed= None, block_density = 0.15):
+    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 1, predator_vision_range = 5,prey_vision_range = 5, max_steps = 2000,  seed= None, block_density = 0.35):
         
         self.grid_size = grid_size
         self.num_predators = num_predators
@@ -24,9 +24,10 @@ class marl_environment():
 
     def can_see(self, a, b, vision_range):
         return self.distance(a, b) <= vision_range
-
+    
+    #chebyshev distance
     def distance(self, a, b):
-        return np.abs(a-b).sum()
+        return np.abs(a-b).max()
     
     def is_blocked(self, pos):
         return self.blocked[pos[0], pos[1]]
@@ -36,7 +37,13 @@ class marl_environment():
             pos = self.rng.integers(0, self.grid_size, size =2)
             if not self.is_blocked(pos):
                 return pos
-            
+
+    def nearest_prey_distance(self,predator):
+        visible = [prey for prey in self.preys if self.can_see(predator, prey, self.predator_vision_range )]
+        if not visible:
+            return None
+        return min(self.distance(predator, prey) for prey in visible)
+          
     #reseting the enviroment by setting steps at 0, giving random positions to each entity (predators, preys, lairs). 
     def reset(self):
 
@@ -58,9 +65,6 @@ class marl_environment():
                 self.blocked[x,y] = True
                 placed += 1
 
-
-
-
         for _ in range(self.num_predators):
             self.predators.append(self.free_positions())
         for _ in range(self.num_preys):
@@ -75,9 +79,10 @@ class marl_environment():
     def step(self, actions):
 
         self.step_count += 1
+        prev_distances = [self.nearest_prey_distance(p) for p in self.predators]
         self.move_predators(actions)
         self.move_preys()
-        rewards = self.reward_system()
+        rewards = self.reward_system(prev_distances)
         self.check_status_prey()
         observations = [self.observation(pred) for pred in self.predators] 
 
@@ -129,7 +134,7 @@ class marl_environment():
                 option = np.clip(prey + move, 0, self.grid_size -1)
                 if self.is_blocked(option):
                     continue
-                
+
                 distance_option = []
 
                 for pred in visible:
@@ -167,18 +172,26 @@ class marl_environment():
         return len(self.preys)== 0 or self.step_count >= self.max_steps
 
     #set a penalty per step, reward per catch and approximate to a prey
-    def reward_system(self):
+    def reward_system(self, prev_distances):
         rewards = [-0.005 for _ in range(self.num_predators)] 
 
         for i, pred in enumerate(self.predators):
 
             if any(np.array_equal(pred, prey) for prey in self.preys):
-                rewards[i] += 2
+                rewards[i] += 5
 
-            for prey in self.preys:
+            new_distance = self.nearest_prey_distance(pred)
+            old_distance = prev_distances[i]
+
+            if old_distance is not None and new_distance is not None:
+                rewards[i] += 0.05 * (old_distance - new_distance)
+
+            
+
+            """for prey in self.preys:
                 if self.can_see(pred, prey, self.predator_vision_range):
                     distance = self.distance(prey, pred)
-                    rewards[i] += 0.05 * (self.predator_vision_range - distance)/ self.predator_vision_range
+                    rewards[i] += 0.05 * (self.predator_vision_range - distance)/ self.predator_vision_range"""
 
         return rewards
 
