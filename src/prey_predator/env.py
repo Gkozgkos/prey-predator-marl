@@ -1,5 +1,5 @@
 import numpy as np
-
+import pygame
 
 class marl_environment():
         
@@ -10,7 +10,7 @@ class marl_environment():
        [1,  0]   right   x up,   y same'''
 
     #initializing an environment
-    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 1, predator_vision_range = 5,prey_vision_range = 5, max_steps = 2000,  seed= None, block_density = 0.35):
+    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 1, predator_vision_range = 5,prey_vision_range = 5, max_steps = 2000,  seed= None, block_density = 0.35, render_mode = None):
         
         self.grid_size = grid_size
         self.num_predators = num_predators
@@ -21,6 +21,8 @@ class marl_environment():
         self.max_steps = max_steps
         self.rng = np.random.default_rng(seed)
         self.block_density = block_density
+        self.render_mode = render_mode
+        self.screen = None
 
     def can_see(self, a, b, vision_range):
         return self.distance(a, b) <= vision_range
@@ -221,3 +223,65 @@ class marl_environment():
             rel_lair = None
 
         return (rel_prey, rel_lair)    
+
+    def _init_pygame(self):
+        pygame.init()
+        self.cell_size = 30
+        self.window_size = self.grid_size * self.cell_size
+        self.screen = pygame.display.set_mode((self.window_size, self.window_size))
+        self.clock = pygame.time.Clock()
+
+    def render(self):
+
+        if self.screen is None:
+            self._init_pygame()
+
+        self.screen.fill((255, 255, 255))
+
+        #obstacles and walls
+        for x in range(self.grid_size):
+            for y in range(self.grid_size):
+                if self.blocked[x,y]:
+                    rect = pygame.Rect(x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size)
+                    pygame.draw.rect(self.screen, (0,0,0), rect)
+
+        # lairs
+        for lair in self.lairs:
+            rect = pygame.Rect(lair[0] * self.cell_size, lair[1] * self.cell_size, self.cell_size, self.cell_size)
+            pygame.draw.rect(self.screen, (128, 128, 128), rect)
+
+        # vision range
+        for pred in self.predators:
+            r = self.predator_vision_range
+            size = (2 * r + 1)* self.cell_size
+            rect = pygame.Rect((pred[0] - r) * self.cell_size , (pred[1] -r )* self.cell_size, size, size)
+            pygame.draw.rect(self.screen, (173, 216, 230), rect,  1)
+
+        for prey in self.preys:
+            r = self.prey_vision_range
+            size = (2 * r + 1)* self.cell_size
+            rect = pygame.Rect((prey[0] - r) * self.cell_size , (prey[1] - r) * self.cell_size, size, size)
+            pygame.draw.rect(self.screen, (173, 216, 230), rect,  1)
+
+        # preys (yellow)
+        for prey in self.preys:
+            rect = pygame.Rect(prey[0] * self.cell_size, prey[1] * self.cell_size, self.cell_size, self.cell_size)
+            pygame.draw.rect(self.screen, (255, 255, 0), rect, border_radius=100)
+
+        # predators
+        for pred in self.predators:
+            agent_color = (255, 0, 0) if any(self.can_see(pred, prey, self.predator_vision_range) for prey in self.preys) else (0, 0, 0)
+            rect = pygame.Rect(pred[0] * self.cell_size, pred[1] * self.cell_size, self.cell_size, self.cell_size)
+            pygame.draw.rect(self.screen, agent_color, rect, width=3, border_radius=100)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.close()
+
+        pygame.display.flip()
+        self.clock.tick(10)
+
+    def close(self):
+        if self.screen is not None:
+            pygame.quit()
+            self.screen = None
