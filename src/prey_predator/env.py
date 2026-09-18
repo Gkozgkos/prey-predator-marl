@@ -104,18 +104,18 @@ class marl_environment():
             visible = []
             visible_lair = []
             for pred in self.predators:
-                if np.abs(prey - pred).sum() <= self.prey_vision_range:
+                if self.can_see(prey, pred, self.prey_vision_range):
                   visible.append(pred)
 
             if not visible:
                 continue
 
             for lair in self.lairs:
-                if np.abs(prey - lair).sum() <= self.prey_vision_range:
+                if self.can_see(prey, lair, self.prey_vision_range):
                     visible_lair.append(lair)
                     
             if visible_lair:
-                nearest = min(visible_lair, key=lambda l: np.abs(prey - l).sum())
+                nearest = min(visible_lair, key=lambda l: self.distance(prey, l))
                 direction = np.clip(nearest - prey, -1, 1)
                 temp_pos = np.clip(prey + direction, 0, self.grid_size - 1)
                 if not self.is_blocked(temp_pos):
@@ -125,7 +125,7 @@ class marl_environment():
             distances = []
 
             for pred in visible:
-                distances.append(np.abs(prey- pred).sum())
+                distances.append(self.distance(prey, pred))
 
             best_score = min(distances)
             best_pos = prey
@@ -138,7 +138,7 @@ class marl_environment():
                 distance_option = []
 
                 for pred in visible:
-                    distance_option.append(np.abs(option - pred).sum())
+                    distance_option.append(self.distance(option, pred))
                 score = min(distance_option)        
 
                 if score > best_score:
@@ -178,7 +178,7 @@ class marl_environment():
         for i, pred in enumerate(self.predators):
 
             if any(np.array_equal(pred, prey) for prey in self.preys):
-                rewards[i] += 5
+                rewards[i] += 2
 
             new_distance = self.nearest_prey_distance(pred)
             old_distance = prev_distances[i]
