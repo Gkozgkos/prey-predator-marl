@@ -38,12 +38,22 @@ def evaluate(agents, env, episodes = 500, render =False, epsilon =0.0):
     return np.mean(catches), np.mean(total_rewards)
 
 if __name__ == "__main__":
-    for eps in [0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]:
+    run = "runs/run_001"
+    watch = True
+    if watch :
         env = marl_environment(seed=999)
         agents = [QAgent(num_actions=8) for _ in range(env.num_predators)]
         for i, a in enumerate(agents):
-            a.load(f"runs/run_001/q_table_{i}.pkl")
+            a.load(f"{run}/q_table_{i}.pkl")
+        evaluate(agents, env, episodes=1, render=True, epsilon=0.05)
+        env.close()
+    else:
+        for eps in [0.0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1.0]:
+            env = marl_environment(seed=999)
+            agents = [QAgent(num_actions=8) for _ in range(env.num_predators)]
+            for i, a in enumerate(agents):
+                a.load(f"runs/run_001/q_table_{i}.pkl")
 
-        # measure
-        mean_catches, mean_reward = evaluate(agents, env, episodes=200, epsilon=eps)
-        print(f"eps={eps}: catches/episode {mean_catches:.3f}   reward/episode: {mean_reward:.2f}")
+            # measure
+            mean_catches, mean_reward = evaluate(agents, env, episodes=200, epsilon=eps)
+            print(f"eps={eps}: catches/episode {mean_catches:.3f}   reward/episode: {mean_reward:.2f}")

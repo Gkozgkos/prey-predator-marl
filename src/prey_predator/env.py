@@ -260,17 +260,15 @@ class marl_environment():
             pygame.draw.rect(self.screen, (128, 128, 128), rect)
 
         # vision range
-        for pred in self.predators:
-            r = self.predator_vision_range
-            size = (2 * r + 1)* self.cell_size
-            rect = pygame.Rect((pred[0] - r) * self.cell_size , (pred[1] -r )* self.cell_size, size, size)
-            pygame.draw.rect(self.screen, (173, 216, 230), rect,  1)
+        overlay = pygame.Surface((self.window_size, self.window_size), pygame.SRCALPHA)
+    
+        for pred in self.predators: 
+            self.draw_vision(overlay, pred, self.predator_vision_range, (80, 140, 255, 50))
 
         for prey in self.preys:
-            r = self.prey_vision_range
-            size = (2 * r + 1)* self.cell_size
-            rect = pygame.Rect((prey[0] - r) * self.cell_size , (prey[1] - r) * self.cell_size, size, size)
-            pygame.draw.rect(self.screen, (173, 216, 230), rect,  1)
+            self.draw_vision(overlay, prey, self.prey_vision_range, (255, 200, 0, 40))
+
+        self.screen.blit(overlay, (0,0))
 
         # preys (yellow)
         for prey in self.preys:
@@ -295,3 +293,20 @@ class marl_environment():
         if self.screen is not None:
             pygame.quit()
             self.screen = None
+
+    def draw_vision(self, surface, pos, vision_range, colour):
+
+        for dx in range(-vision_range, vision_range + 1):
+            for dy in range(-vision_range, vision_range +1):
+                x, y = pos[0] + dx, pos[1] + dy
+
+                if not (0 <= x < self.grid_size and 0 <=y < self.grid_size):
+                    continue
+
+                if self.blocked[x,y]:
+                    continue
+
+                if self.line_of_sight(pos, np.array([x,y])):
+
+                    rect = pygame.Rect(x * self.cell_size, y* self.cell_size, self.cell_size, self.cell_size)
+                    pygame.draw.rect(surface, colour, rect)
