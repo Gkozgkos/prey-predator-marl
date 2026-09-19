@@ -5,17 +5,20 @@ build-backend = "hatchling.build"
 [project]
 name = "prey-predator-marl"
 version = "0.1.0"
-description = "Multi-agent RL prey-predator gridworld"
+description = "Multi-agent reinforcement learning in a prey-predator gridworld"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "VG" }]
 requires-python = ">=3.10"
 dependencies = [
-    "gymnasium>=0.29",
     "numpy>=1.26",
-    "pyyaml>=6.0",
-    "matplotlib>=3.8",
     "pygame>=2.5",
 ]
 
 [project.optional-dependencies]
+plots = [
+    "matplotlib>=3.8",
+]
 dev = [
     "pytest>=8.0",
     "ruff>=0.6",
