@@ -10,7 +10,7 @@ class marl_environment():
        [1,  0]   right   x up,   y same'''
 
     #initializing an environment
-    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 1, predator_vision_range = 5,prey_vision_range = 5, max_steps = 2000,  seed= None, block_density = 0.35, render_mode = None):
+    def __init__(self, grid_size = 16, num_predators = 2, num_preys = 3, num_lairs = 1, predator_vision_range = 5,prey_vision_range = 5, max_steps = 2000,  seed= None, block_density = 0.15, render_mode = None):
         
         self.grid_size = grid_size
         self.num_predators = num_predators
@@ -24,8 +24,17 @@ class marl_environment():
         self.render_mode = render_mode
         self.screen = None
 
+    def line_of_sight(self, a, b):
+        steps = int(np.abs(a-b).max())
+        for t in range(1,steps):
+            x = round(a[0] + (b[0] - a[0]) * t /steps)
+            y = round(a[1] + (b[1] - a[1]) * t / steps)
+            if self.blocked[x,y]:
+                return False
+        return True
+
     def can_see(self, a, b, vision_range):
-        return self.distance(a, b) <= vision_range
+        return self.distance(a, b) <= vision_range and self.line_of_sight(a,b)
     
     #chebyshev distance
     def distance(self, a, b):
@@ -277,6 +286,7 @@ class marl_environment():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.close()
+                return
 
         pygame.display.flip()
         self.clock.tick(10)
